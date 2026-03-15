@@ -22,7 +22,7 @@
         const sleep = ms => new Promise(r => setTimeout(r, ms));
         
         // 遇到假阳性后，我们需要从头开始，请确保清空了 localStorage
-        let currentFlag = localStorage.getItem('ctf_flag') || "SUCTF{";
+        let currentFlag = localStorage.getItem('ctf_flag') || "SUCTF{0";
         const charset = ['0', '1', '}'];
 
         async function measureTiming(guess) {
