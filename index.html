@@ -23,7 +23,7 @@
         }
 
         // 2. 利用 localStorage 存储攻击进度 (因为页面会刷新)
-        let currentFlag = localStorage.getItem('ctf_flag') || "SUCTF{0000";
+        let currentFlag = localStorage.getItem('ctf_flag') || "SUCTF{00000";
         let charIndex = parseInt(localStorage.getItem('ctf_char_index') || "0");
         const charset = ['0', '1', '}'];
 
